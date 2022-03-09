@@ -5,8 +5,18 @@ import { hideBin } from 'yargs/helpers';
 import cliProgress from 'cli-progress';
 
 const generateImage = async (html, waitTime, resolution, aspectRatio, path) => {
-    const browser = await puppeteer.launch();
+    const browser = await puppeteer.launch({
+        args: [
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+        ],
+      });
     const page = await browser.newPage();
+
+    page.on('console', message => console.log(`${message.type().substr(0, 3).toUpperCase()} ${message.text()}`));
+    page.on('pageerror', ({ message }) => console.log(message));
+    page.on('response', response => console.log(`${response.status()} ${response.url()}`));
+    page.on('requestfailed', request => console.log(`${request.failure().errorText} ${request.url()}`));
 
     let height = aspectRatio <= 1 ? resolution : resolution / aspectRatio;
     let width = aspectRatio >= 1 ? resolution : resolution * aspectRatio;
@@ -19,10 +29,18 @@ const generateImage = async (html, waitTime, resolution, aspectRatio, path) => {
         height: height,
         deviceScaleFactor: 1,
     });
-    await page.setContent(html);
-    await page.waitForTimeout(waitTime);
 
-    await page.screenshot({ path: path });
+    // Render this page served locally:
+    // await page.goto('http://127.0.0.1:5501/src/orchids/index.html');
+    // Or render the remote token passed:
+    console.log(html);
+    await page.setContent(html);
+
+    await page.waitForTimeout(waitTime);
+    await page.screenshot({ 
+        path: path,
+        omitBackground: true,
+    });
     await browser.close();
 };
 
@@ -44,7 +62,11 @@ const processProject = async (tokenId, waitTime, resolution, aspectRatio, path, 
     }
 };
 
-const artblocks = new ArtBlocks('thegraph', 'mainnet');
+// Use the mainnet:
+// const artblocks = new ArtBlocks('thegraph', 'mainnet');
+// Or use ropsten:
+const artblocks = new ArtBlocks('thegraph', 'ropsten', ['0x1cd623a86751d4c4f20c96000fec763941f098a2']);
+
 const bar = new cliProgress.SingleBar(
     {
         format: 'RENDERING... ' + '{bar}' + ' ETA: {eta}s',
