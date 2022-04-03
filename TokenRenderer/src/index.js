@@ -33,7 +33,7 @@ const generateImage = async (html, waitTime, resolution, aspectRatio, path) => {
     // Render this page served locally:
     // await page.goto('http://127.0.0.1:5501/src/orchids/index.html');
     // Or render the remote token passed:
-    console.log(html);
+    // console.log(html);
     await page.setContent(html);
 
     await page.waitForTimeout(waitTime);
